@@ -1,0 +1,33 @@
+{
+    "name": "jamrfun/stellar-skirmish",
+    "description": "Core game engine for Stellar Empire: Skirmish.",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+	"psr-4": {
+	    "StellarSkirmish\\": "src/"
+	}
+    },
+    "autoload-dev": {
+	"psr-4": {
+	    "StellarSkirmish\\Tests\\": "tests/"
+	}
+    },
+    "authors": [
+        {
+            "name": "Andrew Sears",
+            "email": "andrew@mayfifteenth.com"
+        }
+    ],
+    "require": {
+        "php": ">=8.1"
+    },
+    "require-dev": {
+	"pestphp/pest": "^3.0"
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    }
+}
