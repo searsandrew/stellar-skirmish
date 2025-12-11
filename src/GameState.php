@@ -107,7 +107,7 @@ final class GameState
      * Defensive helper.
      * Flags us immediately if at least one player has an empty hand while at least one other player still has cards.
      */
-    public function anyPlayerOutOfCards(): bool
+    public function anyPlayerOutOfCardsEarly(): bool
     {
         $empty = 0;
         $nonEmpty = 0;
