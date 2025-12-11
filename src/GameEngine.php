@@ -87,7 +87,7 @@ final class GameEngine
 
         // once all hands are empty, game is over
         if ($state->allHandsEmpty()) {
-            $this->gameOver = true;
+            $state->gameOver = true;
         }
 
         return $state;
@@ -164,6 +164,8 @@ final class GameEngine
 
             // @todo end the game if there are no more planets left
         }
+
+        return $state;
     }
 
     public function isGameOver(GameState $state): bool
