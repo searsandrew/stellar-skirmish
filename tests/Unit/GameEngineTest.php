@@ -7,6 +7,9 @@ use StellarSkirmish\GameEndReason;
 use StellarSkirmish\GameEngine;
 use StellarSkirmish\GameState;
 use StellarSkirmish\Planet;
+use StellarSkirmish\PlanetClass;
+use StellarSkirmish\PlanetAbility;
+use StellarSkirmish\PlanetAbilityType;
 use StellarSkirmish\Exceptions\InvalidMove;
 use StellarSkirmish\Exceptions\GameOver;
 
@@ -22,6 +25,47 @@ function makeTestConfig(): GameConfig
     return new GameConfig(
         playerCount: 2,
         planets: $planets,
+        fleetValues: range(1, 15),
+    );
+}
+
+function makeConfigWithDoubleNextPlanet(): GameConfig
+{
+    // P1: has "double next planet, no combat"
+    $p1 = new Planet(
+        id: 'P1',
+        victoryPoints: 1,
+        name: 'Trigger World',
+        class: PlanetClass::Station,
+        abilities: [
+            new PlanetAbility(
+                PlanetAbilityType::DoubleNextPlanetNoCombat,
+                []
+            ),
+        ],
+    );
+
+    // P2: normal planet
+    $p2 = new Planet(
+        id: 'P2',
+        victoryPoints: 2,
+        name: 'Next World',
+        class: PlanetClass::MiningColony,
+        abilities: [],
+    );
+
+    // P3: normal planet just to prove we don’t accidentally touch it
+    $p3 = new Planet(
+        id: 'P3',
+        victoryPoints: 3,
+        name: 'Far World',
+        class: PlanetClass::ResearchColony,
+        abilities: [],
+    );
+
+    return new GameConfig(
+        playerCount: 2,
+        planets: [$p1, $p2, $p3],
         fleetValues: range(1, 15),
     );
 }
