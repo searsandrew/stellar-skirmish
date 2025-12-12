@@ -12,6 +12,7 @@ final class GameConfig
     public array $planets = [],
     /** @var int[] */
     public array $fleetValues = [],
+    public ?int $seed = null,
   ) {
     if ($this->playerCount < 2) {
       throw new \InvalidArgumentException('At least two players are required.');
@@ -24,17 +25,35 @@ final class GameConfig
     if ($this->fleetValues === []) {
       $this->fleetValues = range(1, 15);
     }
+
+    if ($this->seed !== null) {
+        $this->planets = self::shuffleWithSeed($this->planets, $this->seed);
+    }
   }
 
-  public static function standardTwoPlayer(): self
-  {
-    $planets = Planet::defaultDeck();
-    shuffle($planets);
+    /**
+     * Deterministic shuffle based on a simple integer seed.
+     * @todo: replace with fancier seeding later
+     *
+     * @param Planet[] $planets
+     * @return Planet[]
+     */
+    private static function shuffleWithSeed(array $planets, int $seed): array
+    {
+        mt_srand($seed);
+        shuffle($planets);
+        mt_srand();
 
-    return new self(
-      playerCount: 2,
-      planets: $planets,
-      fleetValues: range(1, 15),
-    );
-  }
+        return $planets;
+    }
+
+    public static function standardTwoPlayer(?int $seed = null): self
+    {
+        return new self(
+            playerCount: 2,
+            planets: Planet::defaultDeck(),
+            fleetValues: range(1, 15),
+            seed: $seed,
+        );
+    }
 }

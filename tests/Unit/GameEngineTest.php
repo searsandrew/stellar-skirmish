@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use StellarSkirmish\GameConfig;
+use StellarSkirmish\GameEndReason;
 use StellarSkirmish\GameEngine;
 use StellarSkirmish\GameState;
 use StellarSkirmish\Planet;
@@ -164,4 +165,114 @@ it('can be serialized to array and restored from array', function () {
     expect($restored->planetPot)->toHaveCount($state->planetPot ? count($state->planetPot) : 0);
     expect($restored->claimedPlanets[1])->toHaveCount(count($state->claimedPlanets[1]));
     expect($restored->gameOver)->toBe($state->gameOver);
+});
+
+it('exposes legal cards for a player', function () {
+    $engine = new GameEngine();
+    $config = makeTestConfig(); // use the helper from earlier tests
+    $state  = $engine->startNewGame($config);
+
+    $legal = $engine->legalCardsForPlayer($state, 1);
+
+    expect($legal)->toBe(range(1, 15));
+});
+
+it('provides a pot summary with total victory points', function () {
+    $engine = new GameEngine();
+    $config = makeTestConfig();
+    $state  = $engine->startNewGame($config);
+
+    // Force a tie to put P1 and P2 into the pot
+    $state = $engine->playCard($state, 1, 5);
+    $state = $engine->playCard($state, 2, 5);
+    // Now pot = [P1, P2] with VP 1 + 2 = 3
+
+    $summary = $engine->potSummary($state);
+
+    expect($summary['count'])->toBe(2);
+    expect($summary['total_vp'])->toBe(3);
+    expect($summary['planets'][0]['id'])->toBe('P1');
+    expect($summary['planets'][1]['id'])->toBe('P2');
+});
+
+it('uses seed to create deterministic planet order', function () {
+    $configA = GameConfig::standardTwoPlayer(seed: 12345);
+    $configB = GameConfig::standardTwoPlayer(seed: 12345);
+    $configC = GameConfig::standardTwoPlayer(seed: 54321);
+
+    $idsA = array_map(fn (Planet $p) => $p->id, $configA->planets);
+    $idsB = array_map(fn (Planet $p) => $p->id, $configB->planets);
+    $idsC = array_map(fn (Planet $p) => $p->id, $configC->planets);
+
+    expect($idsA)->toBe($idsB);          // same seed, same order
+    expect($idsA)->not->toBe($idsC);     // different seed, probably different order
+});
+
+it('discards pot and ends game when a tie occurs and no planets remain', function () {
+    $engine = new GameEngine();
+
+    // Two planets total so we can exhaust them quickly
+    $planets = [
+        new Planet('P1', 1),
+        new Planet('P2', 2),
+    ];
+
+    $config = new GameConfig(
+        playerCount: 2,
+        planets: $planets,
+        fleetValues: [1, 2, 3], // small fleet just for the test
+    );
+
+    $state = $engine->startNewGame($config);
+
+    // First battle: tie (1 vs 1)
+    $state = $engine->playCard($state, 1, 1);
+    $state = $engine->playCard($state, 2, 1);
+    // Pot now contains P1 and P2, deck exhausted (currentPlanetIndex == 2)
+
+    // Second battle: tie again (2 vs 2), with no planets left to add
+    $state = $engine->playCard($state, 1, 2);
+    $state = $engine->playCard($state, 2, 2);
+
+    expect($state->gameOver)->toBeTrue();
+    expect($state->endReason)->toBe(GameEndReason::FinalTiePotDiscarded);
+    expect($state->planetPot)->toBe([]); // pot discarded
+
+    $scores = $state->scores();
+    expect($scores[1])->toBe(0);
+    expect($scores[2])->toBe(0);
+
+    // Unclaimed planets should include both P1 and P2
+    $unclaimedIds = array_map(fn (Planet $p) => $p->id, $state->unclaimedPlanets());
+    expect($unclaimedIds)->toContain('P1', 'P2');
+});
+
+// This is _very_ contrived
+it('marks end reason when ships are exhausted and planets remain', function () {
+    $engine = new GameEngine();
+
+    // One planet will remain unclaimed no matter what
+    $planets = [
+        new Planet('P1', 1),
+        new Planet('P2', 2),
+    ];
+
+    // Each player gets only one card; we will fight for P1 and leave P2 unclaimed
+    $config = new GameConfig(
+        playerCount: 2,
+        planets: $planets,
+        fleetValues: [5],
+    );
+
+    $state = $engine->startNewGame($config);
+
+    // Single battle, player 1 wins
+    $state = $engine->playCard($state, 1, 5);
+    $state = $engine->playCard($state, 2, 5); // tie, but then we have no more ships
+
+    expect($state->gameOver)->toBeTrue();
+    expect($state->endReason)->toBe(GameEndReason::ShipsExhaustedPlanetsRemaining);
+
+    $unclaimedIds = array_map(fn (Planet $p) => $p->id, $state->unclaimedPlanets());
+    expect($unclaimedIds)->toContain('P2');
 });

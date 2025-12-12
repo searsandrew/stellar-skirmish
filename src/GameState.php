@@ -21,6 +21,7 @@ final class GameState
         /** @var array<int, int|null> playerId => last chosen card for current battle */
         public array $currentPlays,
         public bool $gameOver = false,
+        public ?GameEndReason $endReason = null,
     ) {}
 
     /**
@@ -40,6 +41,7 @@ final class GameState
             ),
             'current_plays'         => $this->currentPlays,
             'game_over'             => $this->gameOver,
+            'end_reason'            => $this->endReason?->value,
         ];
     }
 
@@ -56,6 +58,11 @@ final class GameState
             );
         }
 
+        $endReason = null;
+        if (isset($data['end_reason']) && $data['end_reason'] !== null) {
+            $endReason = GameEndReason::from($data['end_reason']);
+        }
+
         return new self(
             playerCount: (int) $data['player_count'],
             hands: $data['hands'],
@@ -65,6 +72,7 @@ final class GameState
             claimedPlanets: $claimed,
             currentPlays: $data['current_plays'],
             gameOver: (bool) $data['game_over'],
+            endReason: $endReason,
         );
     }
 
@@ -93,5 +101,51 @@ final class GameState
         }
 
         return true;
+    }
+
+    /**
+     * Defensive helper.
+     * Flags us immediately if at least one player has an empty hand while at least one other player still has cards.
+     */
+    public function anyPlayerOutOfCardsEarly(): bool
+    {
+        $empty = 0;
+        $nonEmpty = 0;
+
+        foreach ($this->hands as $hand) {
+            if ($hand === []) {
+                $empty++;
+            } else {
+                $nonEmpty++;
+            }
+        }
+
+        return $empty > 0 && $nonEmpty > 0;
+    }
+
+    /**
+     * All planets that were never claimed by any player.
+     *
+     * This includes both planets still in the deck and any that effectively remain unclaimed at the end of the game.
+     * (e.g., discarded planetPot)
+     */
+    public function unclaimedPlanets(): array
+    {
+        $claimedIds = [];
+
+        foreach ($this->claimedPlanets as $planets) {
+            foreach ($planets as $planet) {
+                $claimedIds[$planet->id] = true;
+            }
+        }
+
+        $unclaimed = [];
+        foreach ($this->planetDeck as $planet) {
+            if (!isset($unclaimedIds[$planet->id])) {
+                $unclaimed[] = $planet;
+            }
+        }
+
+        return $unclaimed;
     }
 }

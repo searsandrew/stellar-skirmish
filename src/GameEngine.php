@@ -30,8 +30,9 @@ final class GameEngine
             claimedPlanets: $claimed,
             currentPlays: $plays,
             gameOver: false,
+            endReason: null,
         );
-                                                                                                                                                                                                            }
+    }
 
     /**
      * Ensure there is at least one planet in the pot before a round.
@@ -42,6 +43,7 @@ final class GameEngine
             return $state;
         }
 
+        // planetPot can be empty if there are no planets left to reveal
         if ($state->currentPlanetIndex >= count($state->planetDeck)) {
             return $state;
         }
@@ -50,6 +52,50 @@ final class GameEngine
         $state->currentPlanetIndex++;
 
         return $state;
+    }
+
+    /**
+     * List the cards a player is allowed to play right now.
+     * For now, this is just the cards they have in their hand.
+     * @return int[]
+     * @todo: add status effect which we can enforce (e.g. "can't play this card this turn")
+     *
+     */
+    public function legalCardsForPlayer(GameState $state, int $playerId): array
+    {
+        return $state->hands[$playerId] ?? [];
+    }
+
+    /**
+     * Total VP currently in the planetPot.
+     */
+    public function potTotalVictoryPoints(GameState $state): int
+    {
+        $total = 0;
+
+        foreach($state->planetPot as $planet) {
+            $total += $planet->victoryPoints;
+        }
+
+        return $total;
+    }
+
+    /**
+     * Convenience helper for UI/API: full pot details and size.
+     *
+     * @return array {
+     *     planets: array<int, array>
+     *     total_vp: int,
+     *     count: int
+     * }
+     */
+    public function potSummary(GameState $state): array
+    {
+        return [
+            'planets'   => array_map(fn (Planet $p) => $p->toArray(), $state->planetPot),
+            'total_vp'  => $this->potTotalVictoryPoints($state),
+            'count'     => count($state->planetPot),
+        ];
     }
 
     /**
@@ -65,6 +111,14 @@ final class GameEngine
 
         if (!array_key_exists($playerId, $state->hands)) {
             throw new InvalidMove("Player {$playerId} does not exist.");
+        }
+
+        if ($state->hands[$playerId] === []) {
+            // Defensive: a player with no cards trying to play should never happen.
+            $state->gameOver = true;
+            $state->endReason = GameEndReason::PlayerOutOfCardsEarly;
+
+            throw new GameOver('Player has no cards left to play.');
         }
 
         // first player it act this battle triggers planet reveal if needed.
@@ -83,11 +137,22 @@ final class GameEngine
         // once all players have played, resolve the battle
         if ($this->allPlayersHavePlayed($state)) {
             $state = $this->resolveBattle($state);
-        }
 
-        // once all hands are empty, game is over
-        if ($state->allHandsEmpty()) {
-            $state->gameOver = true;
+            // If resolveBattle() ended the game (final tie with discarded pot), do not try to apply further end of game logic.
+            if (!$state->gameOver) {
+                // Defensive: someone ran out of cards early
+                if ($state->anyPlayerOutOfCardsEarly()) {
+                    $state->gameOver = true;
+                    $state->endReason = GameEndReason::PlayerOutOfCardsEarly;
+                } elseif ($state->allHandsEmpty()) {
+                    $state->gameOver = true;
+
+                    $hasUnclaimed = $state->unclaimedPlanets() !== [];
+                    $state->endReason = $hasUnclaimed
+                        ? GameEndReason::ShipsExhaustedPlanetsRemaining
+                        : GameEndReason::Normal;
+                }
+            }
         }
 
         return $state;
@@ -130,8 +195,9 @@ final class GameEngine
     /**
      * Resolve the current battle.
      * - Compare played cards to determine winner.
-     * - If a single winner: that player takes all planets in the pot
-     * - If tie: add another planet to pot (if available), leave the pot as-is, and a new battle begins, with a planet added to the pot.
+     * - If a single winner: that player takes all planets in the pot.
+     * - If tie: add another planet to pot (if available).
+     * - If tie and NO planets remain: discard pot and end game.
      */
     private function resolveBattle(GameState $state): GameState
     {
@@ -160,9 +226,12 @@ final class GameEngine
             if ($state->currentPlanetIndex < count($state->planetDeck)) {
                 $state->planetPot[] = $state->planetDeck[$state->currentPlanetIndex];
                 $state->currentPlanetIndex++;
+            } else {
+                // tie and NO planets left; discard the pot and end game
+                $state->planetPot = [];
+                $state->gameOver = true;
+                $state->endReason = GameEndReason::FinalTiePotDiscarded;
             }
-
-            // @todo end the game if there are no more planets left
         }
 
         return $state;
