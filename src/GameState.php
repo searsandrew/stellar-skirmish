@@ -24,6 +24,8 @@ final class GameState
         public ?GameEndReason $endReason = null,
         /** @var array<int, Corporation|null> playerId => Corporation */
         public array $corporations = [],
+        /** @var array<int, Mercenary[]> playerId => mercenaries owned */
+        public array $mercenaries = [],
     ) {}
 
     /**
@@ -48,6 +50,10 @@ final class GameState
                 fn (?Corporation $corp) => $corp?->toArray(),
                 $this->corporations
             ),
+            'mercenaries'           => array_map(
+                fn (array $mercenaries) => array_map(fn (Mercenary $merc) => $merc->toArray(), $mercenaries),
+                $this->mercenaries
+            ),
         ];
     }
 
@@ -71,6 +77,14 @@ final class GameState
                 : null;
         }
 
+        $mercenaries = [];
+        foreach($data['mercenaries'] ?? [] as $playerId => $mercs) {
+            $mercenaries[(int) $playerId] = array_map(
+                fn (array $merc) => Mercenary::fromArray($merc),
+                $mercs
+            );
+        }
+
         $endReason = null;
         if (isset($data['end_reason']) && $data['end_reason'] !== null) {
             $endReason = GameEndReason::from($data['end_reason']);
@@ -87,6 +101,7 @@ final class GameState
             gameOver: (bool) $data['game_over'],
             endReason: $endReason,
             corporations: $corporations,
+            mercenaries: $mercenaries,
         );
     }
 

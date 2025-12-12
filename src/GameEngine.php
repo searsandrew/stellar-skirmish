@@ -289,6 +289,41 @@ final class GameEngine
         return $state;
     }
 
+    /**
+     * Award a mercenary to a player after a successful bid.
+     *
+     * Rules:
+     * - Winner discards the ship card they used to bid (removed from hand).
+     * - Winner gains the mercenary (tracked in GameState::mercenaries).
+     * The loser hand stays untouched.
+     */
+    public function awardMercenaryToPlayer(
+        GameState $state,
+        int $playerId,
+        Mercenary $mercenary,
+        int $bidCardValue
+    ): GameState {
+        if (!array_key_exists($playerId, $state->hands)) {
+            throw new \InvalidArgumentException("Unknown player {$playerId}.");
+        }
+
+        // Ensure the player *currently* has this bid card available.
+        if (!in_array($bidCardValue, $state->hands[$playerId], true)) {
+            throw new \RuntimeException("Player {$playerId} does not have bid card {$bidCardValue}.");
+        }
+
+        // Remove the bid card from their hand (it's discarded).
+        $state->hands[$playerId] = $this->removeFirst($state->hands[$playerId], $bidCardValue);
+
+        // Add the mercenary to their collection.
+        if (!isset($state->mercenaries[$playerId])) {
+            $state->mercenaries[$playerId] = [];
+        }
+        $state->mercenaries[$playerId][] = $mercenary;
+
+        return $state;
+    }
+
     public function isGameOver(GameState $state): bool
     {
         return $state->gameOver;
