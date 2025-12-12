@@ -61,12 +61,15 @@ final class Planet
         $id = 1;
 
         $vpMap = [
-            PlanetClass::TradePostColony   => [1, 1, 2, 2, 3],
-            PlanetClass::ResearchColony    => [1, 1, 2, 2, 3],
-            PlanetClass::MiningColony      => [1, 1, 2, 2, 3],
+            PlanetClass::TradePostColony->value   => [1, 1, 2, 2, 3],
+            PlanetClass::ResearchColony->value    => [1, 1, 2, 2, 3],
+            PlanetClass::MiningColony->value      => [1, 1, 2, 2, 3],
         ];
 
-        foreach ($vpMap as $class => $vps) {
+        foreach ($vpMap as $classValue => $vps) {
+            // Convert string back into enum
+            $class = PlanetClass::from($classValue);
+
             foreach ($vps as $vp) {
                 $planets[] = new self(
                     id: 'P'.$id,

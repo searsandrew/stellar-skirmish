@@ -27,7 +27,7 @@ final class Corporation
         return new self(
             id: (string) $data['id'],
             name: (string) $data['name'],
-            classMultipliers: $data['class_multipliers'] ?? [],
+            classMultipliers: array_map('floatval', $data['class_multipliers'] ?? []),
         );
     }
 
