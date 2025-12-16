@@ -13,12 +13,7 @@ final class Planet
         public readonly ?PlanetClass $class = null,
         /** @var PlanetAbility[] */
         public readonly array $abilities = [],
-    ) {
-        // Expansion allows for negative VP. Remove this check for now.
-        // if ($this->victoryPoints < 1 || $this->victoryPoints > 3) {
-        //    throw new \InvalidArgumentException('Planet victory points must be between 1 and 3.');
-        // }
-    }
+    ) {}
 
     public static function fromArray(array $data): self
     {
