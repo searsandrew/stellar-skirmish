@@ -10,7 +10,7 @@ final class Planet
         public readonly string $id,
         public readonly int $victoryPoints,
         public readonly ?string $name = null,
-        public readonly ?PlanetClass $class = null,
+        public readonly ?PlanetClass $planetClass = null,
         /** @var PlanetAbility[] */
         public readonly array $abilities = [],
     ) {}
@@ -21,7 +21,7 @@ final class Planet
             id: (string) $data['id'],
             victoryPoints: (int) $data['victory_points'],
             name: $data['name'] ?? null,
-            class: isset($data['class']) && $data['class'] !== null
+            planetClass: isset($data['class']) && $data['class'] !== null
                 ? PlanetClass::from($data['class'])
                 : null,
             abilities: array_map(
@@ -37,7 +37,7 @@ final class Planet
             'id'             => $this->id,
             'victory_points' => $this->victoryPoints,
             'name'           => $this->name,
-            'class'          => $this->class?->value,
+            'class'          => $this->planetClass?->value,
             'abilities'      => array_map(
                 fn (PlanetAbility $ability) => $ability->toArray(),
                 $this->abilities
@@ -48,29 +48,11 @@ final class Planet
     /**
      * A simple default deck you can replace later.
      *
-     * @return Planet[]
-     */
-    public static function defaultDeck(): array
-    {
-        $planets = [];
-        $id = 1;
-
-        $vpMap = [
-            PlanetClass::TradePostColony->value   => [1, 1, 2, 2, 3],
-            PlanetClass::ResearchColony->value    => [1, 1, 2, 2, 3],
-            PlanetClass::MiningColony->value      => [1, 1, 2, 2, 3],
-        ];
-
-        foreach ($vpMap as $classValue => $vps) {
-            // Turn the string back into a PlanetClass enum
-            $class = PlanetClass::from((string) $classValue);
-
-            foreach ($vps as $vp) {
-                $planets[] = new self(
+     * @return PlS1nets[] = new Planet(
                     id: 'P'.$id,
                     victoryPoints: $vp,
                     name: "Planet {$id}",
-                    class: $class,
+                    planetClass: $planetClass,     // <- enum, not string
                     abilities: [],
                 );
                 $id++;

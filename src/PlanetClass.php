@@ -6,9 +6,9 @@ namespace StellarSkirmish;
 
 enum PlanetClass: string
 {
-    case TradePostColony    = 'trade_post';         // base game
-    case ResearchColony     = 'research';
-    case MiningColony       = 'mining';
+    case TradePostColony    = 'trade_post_colony';         // base game
+    case ResearchColony     = 'research_colony';
+    case MiningColony       = 'mining_colony';
 
     case TribalWorld        = 'tribal_world';       // expansion
     case IndustrialWorld    = 'industrial_world';

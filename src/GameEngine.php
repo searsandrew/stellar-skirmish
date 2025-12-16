@@ -211,7 +211,7 @@ final class GameEngine
             id: $nextPlanet->id,
             victoryPoints: $nextPlanet->victoryPoints * 2,
             name: $nextPlanet->name,
-            class: $nextPlanet->class,
+            planetClass: $nextPlanet->planetClass,
             abilities: $nextPlanet->abilities,
         );
 
@@ -490,6 +490,121 @@ final class GameEngine
         }
 
         return $state;
+     * Base VP per class for a player, ignoring corporations and set bonuses.
+     *
+     * @return array<string, float> classValue|'none' => vp
+     */
+    private function baseVpByClassForPlayer(GameState $state, int $playerId): array
+    {
+        $totals = [];
+
+        foreach ($state->claimedPlanets[$playerId] ?? [] as $planet) {
+            $classKey = $planet->class?->value ?? 'none';
+
+            if (!isset($totals[$classKey])) {
+                $totals[$classKey] = 0.0;
+            }
+
+            $totals[$classKey] += $planet->victoryPoints;
+        }
+
+        return $totals;
+    }
+
+    /**
+     * Flat VP from set bonuses (ClassSetBonus abilities), NOT multiplied by corporations.
+     */
+    private function setBonusVpForPlayer(GameState $state, int $playerId): float
+    {
+        $planets = $state->claimedPlanets[$playerId] ?? [];
+
+        if ($planets === []) {
+            return 0.0;
+        }
+
+        $bonusTotal = 0.0;
+
+        foreach ($planets as $planet) {
+            foreach ($planet->abilities ?? [] as $ability) {
+                if ($ability->type !== PlanetAbilityType::ClassSetBonus) {
+                    continue;
+                }
+
+                $targetClassValue = $ability->params['class'] ?? null;
+                $thresholds       = $ability->params['thresholds'] ?? [];
+
+                if (!is_string($targetClassValue) || !is_array($thresholds)) {
+                    continue;
+                }
+
+                // Count planets of that target class
+                $count = 0;
+                foreach ($planets as $p) {
+                    if ($p->class?->value === $targetClassValue) {
+                        $count++;
+                    }
+                }
+
+                if ($count === 0) {
+                    continue;
+                }
+
+                // Find highest threshold <= count
+                ksort($thresholds);
+                $bonus = 0.0;
+                foreach ($thresholds as $threshold => $value) {
+                    $threshold = (int) $threshold;
+                    if ($count >= $threshold) {
+                        $bonus = (float) $value;
+                    }
+                }
+
+                $bonusTotal += $bonus;
+            }
+        }
+
+        return $bonusTotal;
+    }
+
+    /**
+     * Final scores with corporation multipliers AND set-bonus VP applied.
+     *
+     * - Per-class VP is multiplied by the player's corporation.
+     * - Classless VP ("none") is added without multipliers.
+     * - Set-bonus VP is computed separately and added at the end (not multiplied).
+     *
+     * @return array<int, float> playerId => score
+     */
+    public function finalScores(GameState $state): array
+    {
+        $scores = [];
+
+        for ($playerId = 1; $playerId <= $state->playerCount; $playerId++) {
+            $corp        = $state->corporations[$playerId] ?? null;
+            $baseByClass = $this->baseVpByClassForPlayer($state, $playerId);
+
+            $total = 0.0;
+
+            foreach ($baseByClass as $classKey => $vp) {
+                if ($classKey === 'none') {
+                    // Classless VP is never multiplied
+                    $total += $vp;
+                    continue;
+                }
+
+                $class = PlanetClass::from($classKey);
+                $mult  = $corp?->multiplierForClass($class) ?? 1.0;
+
+                $total += $vp * $mult;
+            }
+
+            // Add set-bonus VP flat, AFTER multipliers
+            $total += $this->setBonusVpForPlayer($state, $playerId);
+
+            $scores[$playerId] = $total;
+        }
+
+        return $scores;
     }
 
     public function isGameOver(GameState $state): bool
