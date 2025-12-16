@@ -13,12 +13,7 @@ final class Planet
         public readonly ?PlanetClass $planetClass = null,
         /** @var PlanetAbility[] */
         public readonly array $abilities = [],
-    ) {
-        // Expansion allows for negative VP. Remove this check for now.
-        // if ($this->victoryPoints < 1 || $this->victoryPoints > 3) {
-        //    throw new \InvalidArgumentException('Planet victory points must be between 1 and 3.');
-        // }
-    }
+    ) {}
 
     public static function fromArray(array $data): self
     {
@@ -53,26 +48,7 @@ final class Planet
     /**
      * A simple default deck you can replace later.
      *
-     * @return Planet[]
-     */
-    public static function defaultDeck(): array
-    {
-        $planets = [];
-        $id = 1;
-
-        $vpMap = [
-            PlanetClass::TradePostColony->value    => [1, 1, 2, 2, 3],
-            PlanetClass::ResearchColony->value     => [1, 1, 2, 2, 3],
-            PlanetClass::MiningColony->value       => [1, 1, 2, 2, 3],
-            // @todo: add TribalWorld / IndustrialWorld / SpaceFaringWorld / Station later
-        ];
-
-        foreach ($vpMap as $classValue => $vps) {
-            // Turn the string back into a PlanetClass enum
-            $planetClass = PlanetClass::from((string) $classValue);
-
-            foreach ($vps as $vp) {
-                $planets[] = new Planet(
+     * @return PlS1nets[] = new Planet(
                     id: 'P'.$id,
                     victoryPoints: $vp,
                     name: "Planet {$id}",

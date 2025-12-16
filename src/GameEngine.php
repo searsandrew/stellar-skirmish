@@ -11,14 +11,20 @@ final class GameEngine
 {
     public function startNewGame(GameConfig $config): GameState
     {
-        $hands = [];
-        $claimed = [];
-        $plays = [];
+        $hands          = [];
+        $claimed        = [];
+        $plays          = [];
+        $mercenaries    = [];
+        $mercPlays      = [];
+        $corporations   = [];
 
         for ($p = 1; $p <= $config->playerCount; $p++) {
-            $hands[$p] = array_values($config->fleetValues);
-            $claimed[$p] = [];
-            $plays[$p] = null;
+            $hands[$p]          = array_values($config->fleetValues);
+            $claimed[$p]        = [];
+            $plays[$p]          = null;
+            $mercenaries[$p]    = [];
+            $mercPlays[$p]      = null;
+            $corporations[$p]   = null;
         }
 
         return new GameState(
@@ -31,6 +37,9 @@ final class GameEngine
             currentPlays: $plays,
             gameOver: false,
             endReason: null,
+            corporations: $corporations,
+            mercenaries: $mercenaries,
+            currentMercPlays: $mercPlays,
         );
     }
 
@@ -245,6 +254,47 @@ final class GameEngine
         }
     }
 
+    private function resetCurrentMercPlays(GameState $state): void
+    {
+        foreach ($state->currentMercPlays as $playerId => $_) {
+            $state->currentMercPlays[$playerId] = null;
+        }
+    }
+
+    /**
+     * Apply mercenary abilities that affect the planet pot BEFORE strength resolution.
+     * Currently: DiscardPlanetDrawNew
+     */
+    private function applyMercenaryPreBattleEffects(GameState $state): GameState
+    {
+        $hasSwap = false;
+
+        foreach ($state->currentMercPlays as $merc) {
+            if ($merc && $merc->abilityType === MercenaryAbilityType::DiscardPlanetDrawNew) {
+                $hasSwap = true;
+                break;
+            }
+        }
+
+        if (!$hasSwap) {
+            return $state;
+        }
+
+        // Ensure there is a planet in the pot
+        $state = $this->ensurePlanetInPot($state);
+
+        if (!empty($state->planetPot) && $state->currentPlanetIndex < count($state->planetDeck)) {
+            // Discard the most recently added planet from the pot
+            array_pop($state->planetPot);
+
+            // Draw a new one from the deck into the pot
+            $state->planetPot[] = $state->planetDeck[$state->currentPlanetIndex];
+            $state->currentPlanetIndex++;
+        }
+
+        return $state;
+    }
+
     /**
      * Resolve the current battle.
      * - Compare played cards to determine winner.
@@ -254,16 +304,72 @@ final class GameEngine
      */
     private function resolveBattle(GameState $state): GameState
     {
-        $plays = $state->currentPlays;
+        // Apply planet-affecting merc abilities first
+        $state = $this->applyMercenaryPreBattleEffects($state);
 
-        // highest card value
-        $max = max($plays);
+        // Compute effective strengths per player
+        $baseStrengths      = [];
+        $effectiveStrengths = [];
+
+        foreach ($state->currentPlays as $playerId => $value) {
+            $baseStrengths[$playerId] = (int) $value;
+        }
+
+        // Start with base strengths as effective
+        $effectiveStrengths = $baseStrengths;
+
+        // Handle OverpowerFifteen
+        foreach ($state->currentMercPlays as $playerId => $merc) {
+            if (!$merc || $merc->abilityType !== MercenaryAbilityType::OverpowerFifteen) {
+                continue;
+            }
+
+            // Check if any opponent has base strength 15
+            $hasFifteenOpponent = false;
+            foreach ($baseStrengths as $otherId => $strength) {
+                if ($otherId === $playerId) {
+                    continue;
+                }
+                if ($strength === 15) {
+                    $hasFifteenOpponent = true;
+                    break;
+                }
+            }
+
+            if ($hasFifteenOpponent) {
+                $effectiveStrengths[$playerId] = 16;
+            } else {
+                $fallback = $merc->params['fallback_strength'] ?? 1;
+                $effectiveStrengths[$playerId] = (int) $fallback;
+            }
+        }
+
+        // Determine winners based on effective strengths
+        $max = max($effectiveStrengths);
         $winners = array_keys(array_filter(
-            $plays,
+            $effectiveStrengths,
             fn (int $v) => $v === $max
         ));
 
+        // WinAllTies override: if there is a tie and exactly one of the tied players
+        // used WinAllTies, that player wins outright.
+        if (count($winners) > 1) {
+            $tieBreakers = [];
+            foreach ($winners as $playerId) {
+                $merc = $state->currentMercPlays[$playerId] ?? null;
+                if ($merc && $merc->abilityType === MercenaryAbilityType::WinAllTies) {
+                    $tieBreakers[] = $playerId;
+                }
+            }
+
+            if (count($tieBreakers) === 1) {
+                $winners = $tieBreakers;
+            }
+        }
+
+        // Clear current plays (ships already removed from hands earlier)
         $this->resetCurrentPlays($state);
+        $this->resetCurrentMercPlays($state);
 
         if (count($winners) === 1) {
             $winnerId = $winners[0];
@@ -290,6 +396,100 @@ final class GameEngine
     }
 
     /**
+     * Award a mercenary to a player after a successful bid.
+     *
+     * Rules:
+     * - Winner discards the ship card they used to bid (removed from hand).
+     * - Winner gains the mercenary (tracked in GameState::mercenaries).
+     * The loser hand stays untouched.
+     */
+    public function awardMercenaryToPlayer(
+        GameState $state,
+        int $playerId,
+        Mercenary $mercenary,
+        int $bidCardValue
+    ): GameState {
+        if (!array_key_exists($playerId, $state->hands)) {
+            throw new \InvalidArgumentException("Unknown player {$playerId}.");
+        }
+
+        // Ensure the player *currently* has this bid card available.
+        if (!in_array($bidCardValue, $state->hands[$playerId], true)) {
+            throw new \RuntimeException("Player {$playerId} does not have bid card {$bidCardValue}.");
+        }
+
+        // Remove the bid card from their hand (it's discarded).
+        $state->hands[$playerId] = $this->removeFirst($state->hands[$playerId], $bidCardValue);
+
+        // Add the mercenary to their collection.
+        if (!isset($state->mercenaries[$playerId])) {
+            $state->mercenaries[$playerId] = [];
+        }
+        $state->mercenaries[$playerId][] = $mercenary;
+
+        return $state;
+    }
+
+    public function playMercenary(GameState $state, int $playerId, string $mercenaryId): GameState
+    {
+        if ($state->gameOver) {
+            throw new \RuntimeException('Game is already over.');
+        }
+
+        if (!array_key_exists($playerId, $state->hands)) {
+            throw new \InvalidArgumentException("Unknown player {$playerId}.");
+        }
+
+        // First player to act this battle triggers planet reveal if needed
+        $state = $this->ensurePlanetInPot($state);
+
+        // Find the mercenary on this player
+        $mercenaryIndex = null;
+        $mercenary      = null;
+
+        foreach ($state->mercenaries[$playerId] ?? [] as $index => $m) {
+            if ($m->id === $mercenaryId) {
+                $mercenaryIndex = $index;
+                $mercenary      = $m;
+                break;
+            }
+        }
+
+        if (!$mercenary) {
+            throw new \RuntimeException("Player {$playerId} does not own mercenary {$mercenaryId}.");
+        }
+
+        // Remove merc from the player's pool (it's now being used this battle)
+        unset($state->mercenaries[$playerId][$mercenaryIndex]);
+        $state->mercenaries[$playerId] = array_values($state->mercenaries[$playerId]);
+
+        // Record that this player used this merc this battle
+        $state->currentMercPlays[$playerId] = $mercenary;
+
+        // For allPlayersHavePlayed, we still need a numeric marker
+        // – use baseStrength as the provisional value.
+        $state->currentPlays[$playerId] = $mercenary->baseStrength;
+
+        // If all players have acted, resolve the battle
+        if ($this->allPlayersHavePlayed($state)) {
+            $state = $this->resolveBattle($state);
+
+            if (!$state->gameOver) {
+                if ($state->anyPlayerOutOfCardsEarly()) {
+                    $state->gameOver  = true;
+                    $state->endReason = GameEndReason::PlayerOutOfCardsEarly;
+                } elseif ($state->allHandsEmpty()) {
+                    $state->gameOver = true;
+
+                    $hasUnclaimed = $state->unclaimedPlanets() !== [];
+                    $state->endReason = $hasUnclaimed
+                        ? GameEndReason::ShipsExhaustedPlanetsRemaining
+                        : GameEndReason::Normal;
+                }
+            }
+        }
+
+        return $state;
      * Base VP per class for a player, ignoring corporations and set bonuses.
      *
      * @return array<string, float> classValue|'none' => vp
