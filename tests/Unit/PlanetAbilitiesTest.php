@@ -58,7 +58,7 @@ it('does nothing for double-next ability if there is no planet left in the deck 
         id: 'P1',
         victoryPoints: 1,
         name: 'Lonely Trigger World',
-        class: PlanetClass::TradePostColony,
+        planetClass: PlanetClass::TradePostColony,
         abilities: [
             new PlanetAbility(
                 PlanetAbilityType::DoubleNextPlanetNoCombat,
@@ -93,7 +93,7 @@ it('ignores non-trigger abilities during battle resolution', function () {
         id: 'P1',
         victoryPoints: 1,
         name: 'Weird World',
-        class: PlanetClass::MiningColony,
+        planetClass: PlanetClass::MiningColony,
         abilities: [
             // This will be handled at scoring time, not on-claim
             new PlanetAbility(
@@ -107,7 +107,7 @@ it('ignores non-trigger abilities during battle resolution', function () {
         id: 'P2',
         victoryPoints: 2,
         name: 'Plain World',
-        class: PlanetClass::ResearchColony,
+        planetClass: PlanetClass::ResearchColony,
         abilities: [],
     );
 

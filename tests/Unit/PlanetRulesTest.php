@@ -11,13 +11,13 @@ it('serializes and restores planets with classes and abilities', function () {
     $planet = new Planet(
         id: 'P42',
         victoryPoints: 2,
-        name: 'Mining Outpost',
-        class: PlanetClass::MiningColony,
+        name: 'The Ultimate Answer Outpost',
+        planetClass: PlanetClass::IndustrialWorld,
         abilities: [
             new PlanetAbility(
                 PlanetAbilityType::ClassSetBonus,
                 [
-                    'class' => PlanetClass::MiningColony->value,
+                    'planetClass' => PlanetClass::ResearchColony->value,
                     'thresholds' => [
                         2 => 1,
                         3 => 3,
@@ -28,19 +28,20 @@ it('serializes and restores planets with classes and abilities', function () {
         ],
     );
 
+
     $array    = $planet->toArray();
     $restored = Planet::fromArray($array);
 
     expect($restored->id)->toBe('P42');
     expect($restored->victoryPoints)->toBe(2);
-    expect($restored->name)->toBe('Mining Outpost');
-    expect($restored->class)->toBe(PlanetClass::MiningColony);
+    expect($restored->name)->toBe('The Ultimate Answer Outpost');
+    expect($restored->planetClass)->toBe(PlanetClass::IndustrialWorld);
 
     expect($restored->abilities)->toHaveCount(1);
     $ability = $restored->abilities[0];
 
     expect($ability->type)->toBe(PlanetAbilityType::ClassSetBonus);
-    expect($ability->params['class'])->toBe(PlanetClass::MiningColony->value);
+    expect($ability->params['planetClass'])->toBe(PlanetClass::ResearchColony->value);
     expect($ability->params['thresholds'])->toMatchArray([
         2 => 1,
         3 => 3,
@@ -54,9 +55,9 @@ it('default deck planets have valid classes', function () {
     expect($deck)->not->toBeEmpty();
 
     foreach ($deck as $planet) {
-        expect($planet->class)->not()->toBeNull();
+        expect($planet->planetClass)->not()->toBeNull();
 
         // Will throw if the stored value is invalid
-        PlanetClass::from($planet->class->value);
+        PlanetClass::from($planet->planetClass->value);
     }
 });

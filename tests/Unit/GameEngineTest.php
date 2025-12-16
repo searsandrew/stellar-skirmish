@@ -36,7 +36,7 @@ function makeConfigWithDoubleNextPlanet(): GameConfig
         id: 'P1',
         victoryPoints: 1,
         name: 'Trigger World',
-        class: PlanetClass::Station,
+        planetClass: PlanetClass::Station,
         abilities: [
             new PlanetAbility(
                 PlanetAbilityType::DoubleNextPlanetNoCombat,
@@ -50,7 +50,7 @@ function makeConfigWithDoubleNextPlanet(): GameConfig
         id: 'P2',
         victoryPoints: 2,
         name: 'Next World',
-        class: PlanetClass::MiningColony,
+        planetClass: PlanetClass::MiningColony,
         abilities: [],
     );
 
@@ -59,7 +59,7 @@ function makeConfigWithDoubleNextPlanet(): GameConfig
         id: 'P3',
         victoryPoints: 3,
         name: 'Far World',
-        class: PlanetClass::ResearchColony,
+        planetClass: PlanetClass::ResearchColony,
         abilities: [],
     );
 
