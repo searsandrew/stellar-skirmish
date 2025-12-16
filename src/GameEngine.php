@@ -445,12 +445,12 @@ final class GameEngine
 
         // Find the mercenary on this player
         $mercenaryIndex = null;
-        $mercenary      = null;
+        $mercenary = null;
 
         foreach ($state->mercenaries[$playerId] ?? [] as $index => $m) {
             if ($m->id === $mercenaryId) {
                 $mercenaryIndex = $index;
-                $mercenary      = $m;
+                $mercenary = $m;
                 break;
             }
         }
@@ -476,7 +476,7 @@ final class GameEngine
 
             if (!$state->gameOver) {
                 if ($state->anyPlayerOutOfCardsEarly()) {
-                    $state->gameOver  = true;
+                    $state->gameOver = true;
                     $state->endReason = GameEndReason::PlayerOutOfCardsEarly;
                 } elseif ($state->allHandsEmpty()) {
                     $state->gameOver = true;
@@ -490,6 +490,9 @@ final class GameEngine
         }
 
         return $state;
+    }
+
+    /**
      * Base VP per class for a player, ignoring corporations and set bonuses.
      *
      * @return array<string, float> classValue|'none' => vp

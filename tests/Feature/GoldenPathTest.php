@@ -21,7 +21,7 @@ it('plays a golden path game with planets, a corporation, and a mercenary', func
         id: 'P1',
         victoryPoints: 1,
         name: 'Trigger World',
-        class: PlanetClass::TradePostColony,
+        planetClass: PlanetClass::TradePostColony,
         abilities: [
             new PlanetAbility(
                 PlanetAbilityType::DoubleNextPlanetNoCombat,
@@ -34,14 +34,14 @@ it('plays a golden path game with planets, a corporation, and a mercenary', func
         id: 'P2',
         victoryPoints: 2,
         name: 'Rich Mining World',
-        class: PlanetClass::MiningColony,
+        planetClass: PlanetClass::MiningColony,
     );
 
     $research = new Planet(
         id: 'P3',
         victoryPoints: 3,
         name: 'Research Hub',
-        class: PlanetClass::ResearchColony,
+        planetClass: PlanetClass::ResearchColony,
     );
 
     $config = new GameConfig(

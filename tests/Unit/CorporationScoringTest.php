@@ -44,14 +44,14 @@ it('computes final scores equal to raw scores when no corporation is assigned', 
         id: 'M1',
         victoryPoints: 2,
         name: 'Mining World',
-        class: PlanetClass::MiningColony,
+        planetClass: PlanetClass::MiningColony,
     );
 
     $p1Research = new Planet(
         id: 'R1',
         victoryPoints: 1,
         name: 'Research World',
-        class: PlanetClass::ResearchColony,
+        planetClass: PlanetClass::ResearchColony,
     );
 
     // Player 1: total raw VP = 3
@@ -76,21 +76,21 @@ it('applies corporation multipliers per class to final scores', function () {
         id: 'M1',
         victoryPoints: 3,
         name: 'Mining World',
-        class: PlanetClass::MiningColony,
+        planetClass: PlanetClass::MiningColony,
     );
 
     $trade = new Planet(
         id: 'T1',
         victoryPoints: 2,
         name: 'Trade Post',
-        class: PlanetClass::TradePostColony,
+        planetClass: PlanetClass::TradePostColony,
     );
 
     $research = new Planet(
         id: 'R1',
         victoryPoints: 1,
         name: 'Research Outpost',
-        class: PlanetClass::ResearchColony,
+        planetClass: PlanetClass::ResearchColony,
     );
 
     // Raw VP: 3 (Mining) + 2 (Trade) + 1 (Research) = 6
@@ -110,9 +110,9 @@ it('applies corporation multipliers per class to final scores', function () {
         claimedPlanetsByPlayer: [1 => [$mining, $trade, $research]],
         corporationsByPlayer: [1 => $corp],
     );
-
+    dd($state);
     $scores = $engine->finalScores($state);
-
+    dd($scores);
     expect($scores[1])->toBe(5.0);
 });
 
@@ -124,14 +124,14 @@ it('supports fractional multipliers such as 1.5x for expansion corporations', fu
         id: 'M1',
         victoryPoints: 2,
         name: 'Mining World 1',
-        class: PlanetClass::MiningColony,
+        planetClass: PlanetClass::MiningColony,
     );
 
     $m2 = new Planet(
         id: 'M2',
         victoryPoints: 2,
         name: 'Mining World 2',
-        class: PlanetClass::MiningColony,
+        planetClass: PlanetClass::MiningColony,
     );
 
     // Base VP for Mining = 4
@@ -163,14 +163,14 @@ it('applies set-bonus VP after base scoring when no corporation is present', fun
         id: 'M1',
         victoryPoints: 2,
         name: 'Mining World 1',
-        class: PlanetClass::MiningColony,
+        planetClass: PlanetClass::MiningColony,
     );
 
     $m2 = new Planet(
         id: 'M2',
         victoryPoints: 2,
         name: 'Mining World 2',
-        class: PlanetClass::MiningColony,
+        planetClass: PlanetClass::MiningColony,
     );
 
     // Station that grants a set bonus for Mining:
@@ -179,7 +179,7 @@ it('applies set-bonus VP after base scoring when no corporation is present', fun
         id: 'S1',
         victoryPoints: 0, // base VP from the station itself
         name: 'Mining Syndicate HQ',
-        class: PlanetClass::Station,
+        planetClass: PlanetClass::Station,
         abilities: [
             new PlanetAbility(
                 PlanetAbilityType::ClassSetBonus,
@@ -215,14 +215,14 @@ it('does not multiply set-bonus VP by corporation multipliers', function () {
         id: 'M1',
         victoryPoints: 2,
         name: 'Mining World 1',
-        class: PlanetClass::MiningColony,
+        planetClass: PlanetClass::MiningColony,
     );
 
     $m2 = new Planet(
         id: 'M2',
         victoryPoints: 2,
         name: 'Mining World 2',
-        class: PlanetClass::MiningColony,
+        planetClass: PlanetClass::MiningColony,
     );
 
     // Same bonus station as above: +3 VP if >= 2 mining worlds
@@ -230,7 +230,7 @@ it('does not multiply set-bonus VP by corporation multipliers', function () {
         id: 'S1',
         victoryPoints: 0,
         name: 'Mining Syndicate HQ',
-        class: PlanetClass::Station,
+        planetClass: PlanetClass::Station,
         abilities: [
             new PlanetAbility(
                 PlanetAbilityType::ClassSetBonus,

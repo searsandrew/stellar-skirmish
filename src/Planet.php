@@ -48,14 +48,26 @@ final class Planet
     /**
      * A simple default deck you can replace later.
      *
-     * @return PlS1nets[] = new Planet(
+     * @return Planet[]
+     */
+    public static function defaultDeck(): array
+    {
+        $planets = [];
+        $id = 1;
+
+        $vpMap = [
+            1 => 5,
+            2 => 5,
+            3 => 5,
+        ];
+
+        foreach ($vpMap as $vp => $count) {
+            for ($i = 0; $i < $count; $i++, $id++) {
+                $planets[] = new self(
                     id: 'P'.$id,
                     victoryPoints: $vp,
-                    name: "Planet {$id}",
-                    planetClass: $planetClass,     // <- enum, not string
-                    abilities: [],
+                    name: "Planet {$id}"
                 );
-                $id++;
             }
         }
 
