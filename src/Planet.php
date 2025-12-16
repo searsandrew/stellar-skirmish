@@ -10,12 +10,14 @@ final class Planet
         public readonly string $id,
         public readonly int $victoryPoints,
         public readonly ?string $name = null,
-        /** @var array<string, mixed>|null */
-        public readonly ?array $abilities = null,
+        public readonly ?PlanetClass $planetClass = null,
+        /** @var PlanetAbility[] */
+        public readonly array $abilities = [],
     ) {
-        if ($this->victoryPoints < 1 || $this->victoryPoints > 3) {
-            throw new \InvalidArgumentException('Planet victory points must be between 1 and 3.');
-        }
+        // Expansion allows for negative VP. Remove this check for now.
+        // if ($this->victoryPoints < 1 || $this->victoryPoints > 3) {
+        //    throw new \InvalidArgumentException('Planet victory points must be between 1 and 3.');
+        // }
     }
 
     public static function fromArray(array $data): self
@@ -24,7 +26,13 @@ final class Planet
             id: (string) $data['id'],
             victoryPoints: (int) $data['victory_points'],
             name: $data['name'] ?? null,
-            abilities: $data['abilities'] ?? null,
+            planetClass: isset($data['class']) && $data['class'] !== null
+                ? PlanetClass::from($data['class'])
+                : null,
+            abilities: array_map(
+                fn (array $ability) => PlanetAbility::fromArray($ability),
+                $data['abilities'] ?? []
+            ),
         );
     }
 
@@ -34,7 +42,11 @@ final class Planet
             'id'             => $this->id,
             'victory_points' => $this->victoryPoints,
             'name'           => $this->name,
-            'abilities'      => $this->abilities,
+            'class'          => $this->planetClass?->value,
+            'abilities'      => array_map(
+                fn (PlanetAbility $ability) => $ability->toArray(),
+                $this->abilities
+            ),
         ];
     }
 
@@ -49,18 +61,25 @@ final class Planet
         $id = 1;
 
         $vpMap = [
-            1 => 5,
-            2 => 5,
-            3 => 5,
+            PlanetClass::TradePostColony->value    => [1, 1, 2, 2, 3],
+            PlanetClass::ResearchColony->value     => [1, 1, 2, 2, 3],
+            PlanetClass::MiningColony->value       => [1, 1, 2, 2, 3],
+            // @todo: add TribalWorld / IndustrialWorld / SpaceFaringWorld / Station later
         ];
 
-        foreach ($vpMap as $vp => $count) {
-            for ($i = 0; $i < $count; $i++, $id++) {
-                $planets[] = new self(
+        foreach ($vpMap as $classValue => $vps) {
+            // Turn the string back into a PlanetClass enum
+            $planetClass = PlanetClass::from((string) $classValue);
+
+            foreach ($vps as $vp) {
+                $planets[] = new Planet(
                     id: 'P'.$id,
                     victoryPoints: $vp,
-                    name: "Planet {$id}"
+                    name: "Planet {$id}",
+                    planetClass: $planetClass,     // <- enum, not string
+                    abilities: [],
                 );
+                $id++;
             }
         }
 

@@ -34,6 +34,16 @@ Notes on current engine behavior:
 
 ---
 
+### Key features
+
+- Deterministic setup option with seeds (for reproducible tests/simulations)
+- Simple planet model with optional classes and abilities
+- Battle resolution with escalating pot on ties
+- Compact serialization for `GameState` and `Planet`
+- Convenience helpers for UI/API (pot summary and totals)
+
+---
+
 ### How to start a game
 
 You can use a standard, shuffled, two‑player configuration, or build your own.
@@ -61,6 +71,10 @@ $state = $engine->startNewGame($config);
 Planet helpers:
 - `Planet::defaultDeck()` returns a simple 15‑planet deck (5×1 VP, 5×2 VP, 5×3 VP).
 - You can create custom planets via `new Planet(id: 'P1', victoryPoints: 2, name: 'Rigel')`.
+
+Deterministic shuffles and presets:
+- `GameConfig::standardTwoPlayer(?int $seed = null)` creates a two‑player setup with the default deck and ship values `1..15`. If you pass a seed, the planet deck will be shuffled deterministically.
+- You can also pass `seed` directly to `new GameConfig(...)` to deterministically shuffle your custom deck.
 
 ---
 
@@ -125,6 +139,7 @@ Structure of the serialized array (keys):
 - `claimed_planets` (array<int, Planet[] as arrays>)
 - `current_plays` (array<int, int|null>)
 - `game_over` (bool)
+- `end_reason` (string|null)
 
 ---
 
@@ -161,6 +176,63 @@ $restored = GameState::fromArray(json_decode($json, true, flags: JSON_THROW_ON_E
 
 ---
 
+### Planet classes and abilities
+
+Planets can optionally have a class and one or more abilities. Abilities are resolved when a planet is claimed. This keeps the engine deterministic and easy to test.
+
+Types available today:
+- `PlanetAbilityType::DoubleNextPlanetNoCombat` — when claimed, immediately add the next planet from the deck to the pot and award it to the same player without a battle (if a next planet exists).
+- `PlanetAbilityType::ClassSetBonus` — scaffolded for future set‑collection scoring; tests verify shape, not scoring yet.
+
+Modeling a planet with an ability:
+```
+use StellarSkirmish\{Planet, PlanetClass, PlanetAbility, PlanetAbilityType};
+
+$triggerWorld = new Planet(
+    id: 'P1',
+    victoryPoints: 1,
+    name: 'Trigger World',
+    class: PlanetClass::Station,
+    abilities: [
+        new PlanetAbility(
+            PlanetAbilityType::DoubleNextPlanetNoCombat,
+            params: []
+        ),
+    ],
+);
+```
+
+When the player claims `Trigger World`, the engine will look ahead, pull the next planet into the pot, and award it immediately (skipping combat) if one exists.
+
+---
+
+### Pot utilities for UI
+
+The engine exposes helpers to summarize the current pot for display:
+
+```
+$engine->potTotalVictoryPoints($state); // int total VP currently in the pot
+$engine->potSummary($state);            // ['planets' => [...], 'total_vp' => int, 'count' => int]
+```
+
+You can also introspect legal plays per player (currently just “what you have in hand”) via:
+```
+$engine->legalCardsForPlayer($state, $playerId); // int[]
+```
+
+---
+
+### End reasons
+
+`GameState::endReason` (enum `GameEndReason`) gives a precise termination cause, such as:
+- `Normal` — all hands empty, all planets awarded
+- `ShipsExhaustedPlanetsRemaining` — players ran out of cards while unclaimed planets remain
+- `PlayerOutOfCardsEarly` — defensive guard if a player runs out mid‑flow
+
+This helps UIs show accurate end‑of‑game messages.
+
+---
+
 ### Development
 
 Run tests (Pest):
@@ -174,5 +246,9 @@ The engine code lives under `src/`:
 - `GameState`  — data model + serialization helpers + scoring
 - `GameConfig` — setup helpers (player count, deck, fleets)
 - `Planet`     — planet model (id, VP, optional name/abilities)
+
+Versioning:
+- Current tag: `v.0.1.0`
+- SemVer will be followed once the API stabilizes; until then, minor versions may include breaking changes.
 
 MIT licensed. Contributions welcome.

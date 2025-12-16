@@ -158,6 +158,59 @@ final class GameEngine
         return $state;
     }
 
+    private function awardPlanetToPlayer(GameState $state, int $playerId, Planet $planet): GameState
+    {
+        $state->claimedPlanets[$playerId][] = $planet;
+
+        // Process on-claim abilities
+        foreach ($planet->abilities as $ability) {
+            $state = $this->applyPlanetAbilityOnClaim($state, $playerId, $planet, $ability);
+        }
+
+        return $state;
+    }
+
+    private function applyPlanetAbilityOnClaim(
+        GameState $state,
+        int $playerId,
+        Planet $planet,
+        PlanetAbility $ability
+    ): GameState {
+        return match ($ability->type) {
+            PlanetAbilityType::DoubleNextPlanetNoCombat
+            => $this->applyDoubleNextPlanetNoCombat($state, $playerId, $ability),
+            default
+            => $state, // scoring-time abilities handled elsewhere
+        };
+    }
+
+    private function applyDoubleNextPlanetNoCombat(
+        GameState $state,
+        int $playerId,
+        PlanetAbility $ability
+    ): GameState {
+        if ($state->currentPlanetIndex >= count($state->planetDeck)) {
+            // No planet to double, nothing happens
+            return $state;
+        }
+
+        $nextPlanet = $state->planetDeck[$state->currentPlanetIndex];
+        $state->currentPlanetIndex++;
+
+        // Double VP
+        $doubled = new Planet(
+            id: $nextPlanet->id,
+            victoryPoints: $nextPlanet->victoryPoints * 2,
+            name: $nextPlanet->name,
+            planetClass: $nextPlanet->planetClass,
+            abilities: $nextPlanet->abilities,
+        );
+
+        $state->claimedPlanets[$playerId][] = $doubled;
+
+        return $state;
+    }
+
     private function removeFirst(array $values, int $value): array
     {
         $found = false;
@@ -215,9 +268,8 @@ final class GameEngine
         if (count($winners) === 1) {
             $winnerId = $winners[0];
 
-            // award all planets currently in the pot to winner
             foreach ($state->planetPot as $planet) {
-                $state->claimedPlanets[$winnerId][] = $planet;
+                $state = $this->awardPlanetToPlayer($state, $winnerId, $planet);
             }
 
             $state->planetPot = [];
