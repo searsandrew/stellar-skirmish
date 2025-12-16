@@ -202,7 +202,7 @@ final class GameEngine
             id: $nextPlanet->id,
             victoryPoints: $nextPlanet->victoryPoints * 2,
             name: $nextPlanet->name,
-            class: $nextPlanet->class,
+            planetClass: $nextPlanet->planetClass,
             abilities: $nextPlanet->abilities,
         );
 
