@@ -192,7 +192,7 @@ $triggerWorld = new Planet(
     id: 'P1',
     victoryPoints: 1,
     name: 'Trigger World',
-    class: PlanetClass::Station,
+    planetClass: PlanetClass::Station,
     abilities: [
         new PlanetAbility(
             PlanetAbilityType::DoubleNextPlanetNoCombat,

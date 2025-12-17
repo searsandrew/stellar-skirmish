@@ -502,7 +502,7 @@ final class GameEngine
         $totals = [];
 
         foreach ($state->claimedPlanets[$playerId] ?? [] as $planet) {
-            $classKey = $planet->class?->value ?? 'none';
+            $classKey = $planet->planetClass?->value ?? 'none';
 
             if (!isset($totals[$classKey])) {
                 $totals[$classKey] = 0.0;
@@ -543,7 +543,7 @@ final class GameEngine
                 // Count planets of that target class
                 $count = 0;
                 foreach ($planets as $p) {
-                    if ($p->class?->value === $targetClassValue) {
+                    if ($p->planetClass?->value === $targetClassValue) {
                         $count++;
                     }
                 }

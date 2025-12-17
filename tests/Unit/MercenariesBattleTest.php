@@ -27,7 +27,7 @@ it('mercenary with OverpowerFifteen counts as 16 when an opponent plays 15', fun
         id: 'P1',
         victoryPoints: 1,
         name: 'Battle World',
-        class: PlanetClass::MiningColony,
+        planetClass: PlanetClass::MiningColony,
     );
 
     $config = makeMercBattleConfig($planet);
@@ -64,7 +64,7 @@ it('mercenary with OverpowerFifteen uses fallback strength when no opponent play
         id: 'P1',
         victoryPoints: 1,
         name: 'Battle World',
-        class: PlanetClass::MiningColony,
+        planetClass: PlanetClass::MiningColony,
     );
 
     $config = makeMercBattleConfig($planet);
@@ -97,7 +97,7 @@ it('mercenary with WinAllTies wins a tie when only one player uses it', function
         id: 'P1',
         victoryPoints: 1,
         name: 'Tie World',
-        class: PlanetClass::TradePostColony,
+        planetClass: PlanetClass::TradePostColony,
     );
 
     $config = makeMercBattleConfig($planet);
@@ -128,14 +128,14 @@ it('mercenary WinAllTies is ignored when multiple players use it in the same tie
         id: 'P1',
         victoryPoints: 1,
         name: 'First World',
-        class: PlanetClass::TradePostColony,
+        planetClass: PlanetClass::TradePostColony,
     );
 
     $p2 = new Planet(
         id: 'P2',
         victoryPoints: 2,
         name: 'Second World',
-        class: PlanetClass::ResearchColony,
+        planetClass: PlanetClass::ResearchColony,
     );
 
     $config = new GameConfig(
@@ -183,14 +183,14 @@ it('mercenary with DiscardPlanetDrawNew replaces the contested planet before res
         id: 'P1',
         victoryPoints: 1,
         name: 'Unlucky World',
-        class: PlanetClass::TradePostColony,
+        planetClass: PlanetClass::TradePostColony,
     );
 
     $p2 = new Planet(
         id: 'P2',
         victoryPoints: 3,
         name: 'Lucky World',
-        class: PlanetClass::MiningColony,
+        planetClass: PlanetClass::MiningColony,
     );
 
     $config = new GameConfig(

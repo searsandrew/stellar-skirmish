@@ -110,9 +110,8 @@ it('applies corporation multipliers per class to final scores', function () {
         claimedPlanetsByPlayer: [1 => [$mining, $trade, $research]],
         corporationsByPlayer: [1 => $corp],
     );
-    dd($state);
+
     $scores = $engine->finalScores($state);
-    dd($scores);
     expect($scores[1])->toBe(5.0);
 });
 
