@@ -20,8 +20,7 @@
         }
     ],
     "require": {
-        "php": "^8.3",
-        "symfony/string": "^7.2"
+        "php": "^8.3"
     },
     "require-dev": {
 	"pestphp/pest": "^3.0"
