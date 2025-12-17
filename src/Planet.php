@@ -48,27 +48,60 @@ final class Planet
     /**
      * A simple default deck you can replace later.
      *
+     * 15 planets total:
+     * - 5× TradePostColony  (1,1,2,2,3 VP)
+     * - 5× ResearchColony   (1,1,2,2,3 VP)
+     * - 5× MiningColony     (1,1,2,2,3 VP)
+     *
      * @return Planet[]
      */
-    public static function defaultDeck(): array
+    public static function defaultDeck(?int $seed = null): array
     {
         $planets = [];
-        $id = 1;
+        $id      = 1;
 
-        $vpMap = [
-            1 => 5,
-            2 => 5,
-            3 => 5,
+        // VP pattern per class
+        $vpPattern = [1, 1, 2, 2, 3];
+
+        // Base-game planet classes included in the default deck
+        $classes = [
+            PlanetClass::TradePostColony,
+            PlanetClass::ResearchColony,
+            PlanetClass::MiningColony,
         ];
 
-        foreach ($vpMap as $vp => $count) {
-            for ($i = 0; $i < $count; $i++, $id++) {
-                $planets[] = new self(
-                    id: 'P'.$id,
-                    victoryPoints: $vp,
-                    name: "Planet {$id}"
-                );
+        // Build (class, vp) tuples
+        $tuples = [];
+
+        foreach ($classes as $planetClass) {
+            foreach ($vpPattern as $vp) {
+                $tuples[] = [$planetClass, $vp];
             }
+        }
+
+        // Optional deterministic shuffle
+        if ($seed !== null) {
+            mt_srand($seed);
+        }
+
+        shuffle($tuples);
+
+        if ($seed !== null) {
+            mt_srand(); // reset RNG to normal
+        }
+
+        // Build Planet instances with a non-null planetClass
+        foreach ($tuples as [$planetClass, $vp]) {
+            /** @var PlanetClass $planetClass */
+            $planets[] = new Planet(
+                id: 'P' . $id,
+                victoryPoints: $vp,
+                name: "Planet {$id}",
+                planetClass: $planetClass,
+                abilities: [],
+            );
+
+            $id++;
         }
 
         return $planets;
