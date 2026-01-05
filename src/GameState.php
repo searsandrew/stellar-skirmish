@@ -182,7 +182,7 @@ final class GameState
 
         $unclaimed = [];
         foreach ($this->planetDeck as $planet) {
-            if (!isset($unclaimedIds[$planet->id])) {
+            if (!isset($claimedIds[$planet->id])) {
                 $unclaimed[] = $planet;
             }
         }
