@@ -10,7 +10,9 @@ final class Planet
         public readonly string $id,
         public readonly int $victoryPoints,
         public readonly ?string $name = null,
+        public readonly ?string $description = null,
         public readonly ?PlanetClass $planetClass = null,
+        public readonly ?string $imageLink = null,
         /** @var PlanetAbility[] */
         public readonly array $abilities = [],
     ) {}
@@ -21,9 +23,11 @@ final class Planet
             id: (string) $data['id'],
             victoryPoints: (int) $data['victory_points'],
             name: $data['name'] ?? null,
+            description: $data['description'] ?? null,
             planetClass: isset($data['class']) && $data['class'] !== null
                 ? PlanetClass::from($data['class'])
                 : null,
+            imageLink: $data['image_link'] ?? null,
             abilities: array_map(
                 fn (array $ability) => PlanetAbility::fromArray($ability),
                 $data['abilities'] ?? []
@@ -37,7 +41,9 @@ final class Planet
             'id'             => $this->id,
             'victory_points' => $this->victoryPoints,
             'name'           => $this->name,
+            'description'    => $this->description,
             'class'          => $this->planetClass?->value,
+            'image_link'     => $this->imageLink,
             'abilities'      => array_map(
                 fn (PlanetAbility $ability) => $ability->toArray(),
                 $this->abilities
@@ -70,12 +76,30 @@ final class Planet
             PlanetClass::MiningColony,
         ];
 
-        // Build (class, vp) tuples
-        $tuples = [];
+        $names = [
+            PlanetClass::TradePostColony->value => ["Bazaar IV", "Neon Nexus", "Merchant's Haven", "Silk Road Station", "Trade Winds"],
+            PlanetClass::ResearchColony->value  => ["Alpha Laboratory", "Knowledge Spire", "Quantum Observatory", "Data Core", "Mind's Eye"],
+            PlanetClass::MiningColony->value    => ["Iron Rock", "Diamond Depths", "Methane Plains", "Ore Outpost", "The Quarry"],
+        ];
+
+        $descriptions = [
+            PlanetClass::TradePostColony->value => "A bustling hub of galactic commerce where credits flow like water.",
+            PlanetClass::ResearchColony->value  => "A quiet world dedicated to uncovering the secrets of the universe.",
+            PlanetClass::MiningColony->value    => "A rugged planet rich in rare minerals and heavy metals.",
+        ];
+
+        // Build (class, vp, name, description) tuples
+        $dataEntries = [];
 
         foreach ($classes as $planetClass) {
-            foreach ($vpPattern as $vp) {
-                $tuples[] = [$planetClass, $vp];
+            $classNames = $names[$planetClass->value];
+            foreach ($vpPattern as $i => $vp) {
+                $dataEntries[] = [
+                    'class' => $planetClass,
+                    'vp'    => $vp,
+                    'name'  => $classNames[$i],
+                    'desc'  => $descriptions[$planetClass->value],
+                ];
             }
         }
 
@@ -84,20 +108,25 @@ final class Planet
             mt_srand($seed);
         }
 
-        shuffle($tuples);
+        shuffle($dataEntries);
 
         if ($seed !== null) {
             mt_srand(); // reset RNG to normal
         }
 
         // Build Planet instances with a non-null planetClass
-        foreach ($tuples as [$planetClass, $vp]) {
-            /** @var PlanetClass $planetClass */
+        foreach ($dataEntries as $entry) {
+            /** @var PlanetClass $pClass */
+            $pClass = $entry['class'];
+            $name   = $entry['name'];
+
             $planets[] = new Planet(
                 id: 'P' . $id,
-                victoryPoints: $vp,
-                name: "Planet {$id}",
-                planetClass: $planetClass,
+                victoryPoints: $entry['vp'],
+                name: $name,
+                description: $entry['desc'],
+                planetClass: $pClass,
+                imageLink: "https://images.stellar-skirmish.com/planets/p{$id}.png",
                 abilities: [],
             );
 

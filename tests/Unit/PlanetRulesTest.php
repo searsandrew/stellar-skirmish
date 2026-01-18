@@ -12,7 +12,9 @@ it('serializes and restores planets with classes and abilities', function () {
         id: 'P42',
         victoryPoints: 2,
         name: 'The Ultimate Answer Outpost',
+        description: 'A very specific description about the universe.',
         planetClass: PlanetClass::IndustrialWorld,
+        imageLink: 'https://example.com/planets/p42.png',
         abilities: [
             new PlanetAbility(
                 PlanetAbilityType::ClassSetBonus,
@@ -35,7 +37,9 @@ it('serializes and restores planets with classes and abilities', function () {
     expect($restored->id)->toBe('P42');
     expect($restored->victoryPoints)->toBe(2);
     expect($restored->name)->toBe('The Ultimate Answer Outpost');
+    expect($restored->description)->toBe('A very specific description about the universe.');
     expect($restored->planetClass)->toBe(PlanetClass::IndustrialWorld);
+    expect($restored->imageLink)->toBe('https://example.com/planets/p42.png');
 
     expect($restored->abilities)->toHaveCount(1);
     $ability = $restored->abilities[0];
@@ -49,13 +53,17 @@ it('serializes and restores planets with classes and abilities', function () {
     ]);
 });
 
-it('default deck planets have valid classes', function () {
+it('default deck planets have valid specific data', function () {
     $deck = Planet::defaultDeck();
 
     expect($deck)->not->toBeEmpty();
 
     foreach ($deck as $planet) {
         expect($planet->planetClass)->not()->toBeNull();
+        expect($planet->name)->not()->toBeNull();
+        expect($planet->description)->not()->toBeNull();
+        expect($planet->imageLink)->not()->toBeNull();
+        expect($planet->imageLink)->toStartWith('https://images.stellar-skirmish.com/planets/');
 
         // Will throw if the stored value is invalid
         PlanetClass::from($planet->planetClass->value);
