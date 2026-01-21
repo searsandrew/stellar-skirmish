@@ -15,6 +15,12 @@ final class Planet
         public readonly ?string $imageLink = null,
         /** @var PlanetAbility[] */
         public readonly array $abilities = [],
+
+        // --- Optional canon metadata (safe defaults) ---
+        // Lets the app/UI carry your DB planet data without hacks.
+        public readonly ?string $flavor = null,
+        public readonly ?string $type = null,
+        public readonly ?string $filename = null,
     ) {}
 
     public static function fromArray(array $data): self
@@ -32,6 +38,11 @@ final class Planet
                 fn (array $ability) => PlanetAbility::fromArray($ability),
                 $data['abilities'] ?? []
             ),
+
+            // Optional fields (won’t break old saved states)
+            flavor: $data['flavor'] ?? null,
+            type: $data['type'] ?? null,
+            filename: $data['filename'] ?? null,
         );
     }
 
@@ -48,6 +59,11 @@ final class Planet
                 fn (PlanetAbility $ability) => $ability->toArray(),
                 $this->abilities
             ),
+
+            // Optional fields
+            'flavor'         => $this->flavor,
+            'type'           => $this->type,
+            'filename'       => $this->filename,
         ];
     }
 
